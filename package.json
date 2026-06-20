@@ -23,6 +23,7 @@
   "homepage": "https://github.com/callmestiles/afrikart-service#readme",
   "dependencies": {
     "better-sqlite3": "^12.11.1",
+    "crypto": "^1.0.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "zod": "^4.4.3"
