@@ -1,16 +1,17 @@
 import express from "express";
 import { healthRouter } from "./routes/health";
+import { ordersRouter } from "./routes/orders";
 import { getDb } from "./db";
 
 export function createApp() {
   getDb();
 
   const app = express();
-
   app.use(express.json());
 
   // Routes
   app.use(healthRouter);
+  app.use("/orders", ordersRouter);
 
   // 404 handler
   app.use((_req, res) => {
