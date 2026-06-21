@@ -2,6 +2,9 @@
 
 Backend service for AfriKart, a fictional African commerce platform, built as a take-home assessment.
 
+**Role track:** Product Engineer  
+**Seniority band:** Senior
+
 ---
 
 ## What This Is
@@ -70,15 +73,15 @@ The CLI walks through the full flow interactively — no Postman needed.
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|---|---|---|
-| `FINCRA_BASE_URL` | Sandbox base URL | `http://localhost:4000` |
-| `FINCRA_SECRET_KEY` | API secret key | `sk_test_afrikart_secret` |
-| `FINCRA_PUBLIC_KEY` | API public key | `pk_test_afrikart_public` |
-| `FINCRA_WEBHOOK_SECRET` | Webhook HMAC secret | `whsec_afrikart_secret` |
-| `PORT` | Service port | `3000` |
-| `DB_PATH` | SQLite database file path | `./afrikart.db` |
-| `NODE_ENV` | Environment | `development` |
+| Variable                | Description               | Default                   |
+| ----------------------- | ------------------------- | ------------------------- |
+| `FINCRA_BASE_URL`       | Sandbox base URL          | `http://localhost:4000`   |
+| `FINCRA_SECRET_KEY`     | API secret key            | `sk_test_afrikart_secret` |
+| `FINCRA_PUBLIC_KEY`     | API public key            | `pk_test_afrikart_public` |
+| `FINCRA_WEBHOOK_SECRET` | Webhook HMAC secret       | `whsec_afrikart_secret`   |
+| `PORT`                  | Service port              | `3000`                    |
+| `DB_PATH`               | SQLite database file path | `./afrikart.db`           |
+| `NODE_ENV`              | Environment               | `development`             |
 
 All variables are validated on startup. The service exits immediately with a clear error message if any required variable is missing.
 
@@ -112,35 +115,35 @@ npm run test:all
 
 ### Orders
 
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/orders` | Initiate a checkout for a customer order |
-| `GET` | `/orders/:orderId` | Get all payment attempts for an order |
+| Method | Path               | Description                              |
+| ------ | ------------------ | ---------------------------------------- |
+| `POST` | `/orders`          | Initiate a checkout for a customer order |
+| `GET`  | `/orders/:orderId` | Get all payment attempts for an order    |
 
 ### Payouts
 
-| Method | Path | Description |
-|---|---|---|
+| Method | Path              | Description                               |
+| ------ | ----------------- | ----------------------------------------- |
 | `POST` | `/payouts/vendor` | Verify account and initiate vendor payout |
 
 ### Webhooks
 
-| Method | Path | Description |
-|---|---|---|
+| Method | Path               | Description             |
+| ------ | ------------------ | ----------------------- |
 | `POST` | `/webhooks/fincra` | Fincra webhook receiver |
 
 ### Timeline
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/timeline/:reference` | Full event history for a checkout reference |
-| `GET` | `/timeline/order/:orderId` | All attempts and events for an order |
+| Method | Path                       | Description                                 |
+| ------ | -------------------------- | ------------------------------------------- |
+| `GET`  | `/timeline/:reference`     | Full event history for a checkout reference |
+| `GET`  | `/timeline/order/:orderId` | All attempts and events for an order        |
 
 ### Health
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/health` | Service health check |
+| Method | Path      | Description          |
+| ------ | --------- | -------------------- |
+| `GET`  | `/health` | Service health check |
 
 ---
 
@@ -251,18 +254,18 @@ Quotes expire after 5 minutes, but we treat them as expired 60 seconds early. Th
 
 ## Failure Modes Handled
 
-| Failure | How Triggered | How Handled |
-|---|---|---|
-| Duplicate webhook (same event ID) | `POST /simulate/webhooks/replay/:id` | UNIQUE constraint on `processed_webhooks.event_id` — second insert fails, event skipped |
-| Duplicate webhook (new event ID, same content) | Sandbox replay | Status machine guard — handler checks current order status before transitioning |
-| Async payout failure | Account ending in 9 | `payout.failed` webhook updates order, writes timeline event with reason |
-| Slow payout | Account ending in 7 | Order stays in `payout_processing`, status guard blocks unsafe retries |
-| Chargeback | `POST /simulate/chargeback` | `chargeback.created` webhook marks order, records balance impact in timeline |
-| FX quote expiry | Quote older than 4 min | 60-second buffer triggers re-fetch before use |
-| Provider 503 chaos | `CHAOS_RATE` env var | Exponential backoff with jitter, 3 attempts max, same idempotency key on retries |
-| Name mismatch on verification | Wrong recipient name | Payout blocked with `NAME_MISMATCH` error, order released back to `collected` |
-| Server crash mid-payout | Kill server during payout | Startup reconciliation polls Fincra on restart, resolves stuck orders |
-| Webhook processing failure | Any unhandled exception | DB transaction rolls back — event not marked processed, Fincra will redeliver |
+| Failure                                        | How Triggered                        | How Handled                                                                             |
+| ---------------------------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------- |
+| Duplicate webhook (same event ID)              | `POST /simulate/webhooks/replay/:id` | UNIQUE constraint on `processed_webhooks.event_id` — second insert fails, event skipped |
+| Duplicate webhook (new event ID, same content) | Sandbox replay                       | Status machine guard — handler checks current order status before transitioning         |
+| Async payout failure                           | Account ending in 9                  | `payout.failed` webhook updates order, writes timeline event with reason                |
+| Slow payout                                    | Account ending in 7                  | Order stays in `payout_processing`, status guard blocks unsafe retries                  |
+| Chargeback                                     | `POST /simulate/chargeback`          | `chargeback.created` webhook marks order, records balance impact in timeline            |
+| FX quote expiry                                | Quote older than 4 min               | 60-second buffer triggers re-fetch before use                                           |
+| Provider 503 chaos                             | `CHAOS_RATE` env var                 | Exponential backoff with jitter, 3 attempts max, same idempotency key on retries        |
+| Name mismatch on verification                  | Wrong recipient name                 | Payout blocked with `NAME_MISMATCH` error, order released back to `collected`           |
+| Server crash mid-payout                        | Kill server during payout            | Startup reconciliation polls Fincra on restart, resolves stuck orders                   |
+| Webhook processing failure                     | Any unhandled exception              | DB transaction rolls back — event not marked processed, Fincra will redeliver           |
 
 ---
 
@@ -273,6 +276,7 @@ Run `npm run demo` and follow this sequence:
 ### 1. Happy Path (5 minutes)
 
 **Action:** Select "Initiate a new order"
+
 - Order ID: `order_demo_001`
 - Amount: `25000`
 - Customer: `Maya Okafor / maya@example.com`
@@ -280,16 +284,19 @@ Run `npm run demo` and follow this sequence:
 **Show:** Reference returned, virtual account details, status is `pending`
 
 **Action:** Select "Simulate customer payment"
+
 - Paste the reference from step above
 
 **Show:** Settlement confirmed, webhook fired
 
 **Action:** Select "View transaction timeline" → by reference
+
 - Show status is now `collected`
 - Walk through the identifier chain
 - Point out `fincraPaymentId` linking our record to Fincra's system
 
 **Action:** Select "Initiate vendor payout"
+
 - Paste the reference
 - Select "Kofi Mensah" (happy path account)
 
@@ -304,6 +311,7 @@ Run `npm run demo` and follow this sequence:
 **Action:** Create and collect a new order (repeat steps above with `order_demo_002`)
 
 **Action:** Select "Initiate vendor payout"
+
 - Select "Fatima Invalid — ends in 9 — will fail"
 
 **Show:** Returns 202 immediately — payout accepted for processing
@@ -319,6 +327,7 @@ Run `npm run demo` and follow this sequence:
 ### 3. Architectural Highlight — Duplicate Webhook (2 minutes)
 
 **Action:** Select "Simulate duplicate webhook delivery"
+
 - Pick the most recent `collection.successful` event
 
 **Show:** Service logs — "Duplicate delivery detected — skipping" OR status guard fires
@@ -331,7 +340,7 @@ Run `npm run demo` and follow this sequence:
 
 - **Why SQLite?** Zero infrastructure, survives restarts, WAL mode for concurrent reads. Migration path to PostgreSQL is clean — all SQL is in `src/db/*.repo.ts`.
 - **Why return 200 immediately on webhooks?** Prevent Fincra timeout → retry storm. Processing is async via `setImmediate`.
-- **What if the server crashes mid-payout?** Startup reconciliation polls Fincra for stuck orders.  `src/services/reconciliation.ts`.
+- **What if the server crashes mid-payout?** Startup reconciliation polls Fincra for stuck orders. `src/services/reconciliation.ts`.
 - **What changes for mobile money?** New route handler, same idempotency key pattern, same state machine. Core logic untouched.
 
 ## What I Would Improve With More Time
