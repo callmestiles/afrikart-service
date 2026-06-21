@@ -10,7 +10,7 @@ export interface OrderEvent {
   createdAt: string;
 }
 
-//Raw shape from SQLite
+// Raw shape from SQLite
 interface OrderEventRow {
   id: string;
   order_id: string;

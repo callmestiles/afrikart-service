@@ -207,5 +207,4 @@ export class FincraClient {
   }
 }
 
-// Singleton instance to be used everywhere
 export const fincraClient = new FincraClient();

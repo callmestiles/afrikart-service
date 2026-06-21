@@ -28,7 +28,6 @@ const createOrderSchema = z.object({
 
 // ─── POST /orders ─────────────────────────────────────────────────────────────
 ordersRouter.post("/", async (req: Request, res: Response) => {
-  //validate
   const parsed = createOrderSchema.safeParse(req.body);
 
   if (!parsed.success) {
@@ -41,10 +40,8 @@ ordersRouter.post("/", async (req: Request, res: Response) => {
 
   const { orderId, amount, currency, customer, metadata } = parsed.data;
 
-  //generate a unique checkout reference for this attempt
   const reference = generateOrderReference(orderId);
 
-  //create order in draft state before calling Fincra
   const order = createOrder({
     reference,
     orderId,
@@ -62,7 +59,6 @@ ordersRouter.post("/", async (req: Request, res: Response) => {
     detail: "Order draft created, initiating checkout with payment provider",
   });
 
-  //call fincra
   let fincraResponse: Awaited<ReturnType<typeof fincraClient.initiateCheckout>>;
   try {
     fincraResponse = await fincraClient.initiateCheckout({
@@ -96,7 +92,6 @@ ordersRouter.post("/", async (req: Request, res: Response) => {
     });
   }
 
-  //fincra confirmed, update to pending
   updateOrderStatus(order.id, "pending", {
     paymentId: fincraResponse.payment.id,
   });
@@ -112,7 +107,6 @@ ordersRouter.post("/", async (req: Request, res: Response) => {
     },
   });
 
-  //return result
   return res.status(201).json({
     success: true,
     data: {

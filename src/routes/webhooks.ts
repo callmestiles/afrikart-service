@@ -28,13 +28,9 @@ webhooksRouter.post('/fincra', (req: Request, res: Response) => {
   const payload = req.body as { event: string; data: Record<string, unknown> }
   const eventId = req.headers['x-event-id'] as string ?? `evt_${Date.now()}_${Math.random().toString(36).slice(2)}`
 
-  // Return 200 immediately
-  // Fincra considers a webhook delivered when it receives a 2xx response
-  // If we process synchronously and something takes time, Fincra may
-  // timeout and retry — creating unnecessary duplicate deliveries
+  // Respond immediately — Fincra retries on timeout, which creates duplicate deliveries
   res.status(200).json({ success: true, message: 'Webhook received' })
 
-  // Process asynchronously after response is sent
   setImmediate(() => {
     processWebhookEvent(eventId, payload).catch(err => {
       console.error('[webhook] Unhandled error during processing:', err)

@@ -30,7 +30,7 @@ export interface Order {
   updatedAt: string;
 }
 
-//Raw shape from SQLite
+// Raw shape from SQLite
 interface OrderRow {
   id: string;
   reference: string;
@@ -181,9 +181,30 @@ export function updateOrderStatus(
   return order;
 }
 
+// Atomically transitions an order from collected → payout_initiated.
+// Returns false if another request already claimed it (race condition guard).
+export function claimOrderForPayout(id: string): boolean {
+  const db = getDb();
+
+  return db.transaction(() => {
+    const fresh = db
+      .prepare("SELECT status FROM orders WHERE id = ?")
+      .get(id) as { status: string } | undefined;
+
+    if (!fresh || fresh.status !== "collected") {
+      return false;
+    }
+
+    db.prepare(
+      "UPDATE orders SET status = ?, updated_at = ? WHERE id = ?",
+    ).run("payout_initiated", nowIso(), id);
+
+    return true;
+  })();
+}
+
 export function getStuckOrders(): Order[] {
-  // Orders that have been in payout_initiated for more than 5 minutes
-  // Used by the startup reconciliation job
+  // payout_initiated for more than 5 minutes — claimed but never confirmed
   const db = getDb();
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
 

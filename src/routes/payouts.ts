@@ -1,9 +1,12 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import { getDb } from "../db";
 import { fincraClient } from "../fincra/client";
 import { FincraError, FincraNetworkError } from "../fincra/errors";
-import { getOrderByReference, updateOrderStatus } from "../db/orders.repo";
+import {
+  claimOrderForPayout,
+  getOrderByReference,
+  updateOrderStatus,
+} from "../db/orders.repo";
 import { appendOrderEvent } from "../db/events.repo";
 import {
   createPayout,
@@ -52,7 +55,6 @@ payoutsRouter.post("/vendor", async (req: Request, res: Response) => {
     narration,
   } = parsed.data;
 
-  // Find the order
   const order = getOrderByReference(orderReference);
   if (!order) {
     return res.status(404).json({
@@ -61,7 +63,6 @@ payoutsRouter.post("/vendor", async (req: Request, res: Response) => {
     });
   }
 
-  // Verify order is in collected state
   if (order.status !== "collected") {
     return res.status(409).json({
       success: false,
@@ -70,31 +71,7 @@ payoutsRouter.post("/vendor", async (req: Request, res: Response) => {
     });
   }
 
-  // Atomically claim the order for payout
-  // This is the double-submit prevention mechanism
-  // Update status to payout_initiated inside a transaction
-  // If two requests arrive simultaneously, only one wins the update
-  // The other will see status !== 'collected' in step 3 and return 409
-  const db = getDb();
-
-  const claimed : boolean = db.transaction(() => {
-    // Re-read inside transaction to get the latest status
-    const fresh = db
-      .prepare("SELECT status FROM orders WHERE id = ?")
-      .get(order.id) as { status: string } | undefined;
-
-    if (!fresh || fresh.status !== "collected") {
-      return false; // Another request already claimed it
-    }
-
-    db.prepare("UPDATE orders SET status = ?, updated_at = ? WHERE id = ?").run(
-      "payout_initiated",
-      new Date().toISOString(),
-      order.id,
-    );
-
-    return true;
-  })();
+  const claimed = claimOrderForPayout(order.id);
 
   if (!claimed) {
     return res.status(409).json({
@@ -110,7 +87,6 @@ payoutsRouter.post("/vendor", async (req: Request, res: Response) => {
     detail: `Order claimed for payout to ${recipient.name} at bank ${recipient.bankCode}`,
   });
 
-  // Verify destination account with Fincra
   let verificationResult: Awaited<
     ReturnType<typeof fincraClient.verifyAccountNumber>
   >;
@@ -150,14 +126,13 @@ payoutsRouter.post("/vendor", async (req: Request, res: Response) => {
     });
   }
 
-  // Name match check
   const nameMatch = matchAccountName(
     recipient.name,
     verificationResult.accountName,
   );
 
   if (!nameMatch.matched) {
-    // Name mismatch catch, Release order back to collected so operator can review
+    // Release back to collected so the operator can review and retry
     updateOrderStatus(order.id, "collected");
 
     appendOrderEvent({
@@ -187,7 +162,6 @@ payoutsRouter.post("/vendor", async (req: Request, res: Response) => {
     },
   });
 
-  // Handle FX quote if cross-currency
   let quoteReference: string | undefined;
 
   const isCrossCurrency =
@@ -254,11 +228,10 @@ payoutsRouter.post("/vendor", async (req: Request, res: Response) => {
     }
   }
 
-  // Generate references
   const customerReference = generatePayoutReference(order.orderId);
   const idempotencyKey = generateIdempotencyKey(customerReference);
 
-  // Create payout record in the database before calling Fincra
+  // Record before calling Fincra so we have a row to update if the response is lost
   const payout = createPayout({
     orderId: order.id,
     customerReference,
@@ -271,7 +244,6 @@ payoutsRouter.post("/vendor", async (req: Request, res: Response) => {
     idempotencyKey,
   });
 
-  // Call Fincra with retry and idempotency key
   let fincraPayout: Awaited<ReturnType<typeof fincraClient.initiatePayout>>;
 
   try {
@@ -298,7 +270,7 @@ payoutsRouter.post("/vendor", async (req: Request, res: Response) => {
       { maxAttempts: 3, baseDelayMs: 1000, idempotencyKey },
     );
   } catch (err) {
-    // Payout call failed — update our records
+    // Payout failed — mark both records so the state is consistent
     updatePayoutStatus(
       payout.id,
       "failed",
@@ -327,7 +299,6 @@ payoutsRouter.post("/vendor", async (req: Request, res: Response) => {
     });
   }
 
-  //Update payout and order with Fincra's references
   updatePayoutWithFincraDetails(payout.id, {
     fincraReference: fincraPayout.reference,
     fincraPayoutId: fincraPayout.id,

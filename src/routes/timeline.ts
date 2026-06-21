@@ -59,7 +59,6 @@ timelineRouter.get("/order/:orderId", (req: Request, res: Response) => {
 function buildTimeline(orderId: string) {
   const db = getDb();
 
-  // Get the order
   const orderRow = db
     .prepare("SELECT * FROM orders WHERE id = ?")
     .get(orderId) as
@@ -84,11 +83,8 @@ function buildTimeline(orderId: string) {
 
   if (!orderRow) return null;
 
-  // Get all timeline events for this order — ordered oldest first
   const events = getOrderEvents(orderId);
 
-  // Get payout details if a payout exists
-  // We look up by order_id in the payouts table
   const payoutRow =
     (db.prepare("SELECT * FROM payouts WHERE order_id = ?").get(orderId) as {
       id: string;
@@ -108,10 +104,7 @@ function buildTimeline(orderId: string) {
       updated_at: string;
     } | null) ?? null;
 
-  // Build the identifier chain
-  // This directly answers the brief's question:
-  // "Which identifiers connect checkout.reference, payment.id,
-  //  payout.reference, customerReference, and balance-log references?"
+  // Maps every identifier involved in this transaction for cross-system debugging
   const identifierChain: Record<string, string | null> = {
     checkoutReference: orderRow.reference,
     fincraPaymentId: orderRow.payment_id,
@@ -120,7 +113,6 @@ function buildTimeline(orderId: string) {
     fincraPayoutId: orderRow.payout_id,
   };
 
-  // Build payout summary if exists
   const payout = payoutRow
     ? {
         customerReference: payoutRow.customer_reference,
@@ -140,7 +132,6 @@ function buildTimeline(orderId: string) {
       }
     : null;
 
-  // Determine human-readable status description
   const statusDescription = describeStatus(orderRow.status);
 
   return {

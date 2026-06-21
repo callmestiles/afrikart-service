@@ -9,7 +9,8 @@
     "build": "tsc",
     "test": "tsx --test tests/unit/**/*.test.ts",
     "test:integration": "tsx --test tests/integration/**/*.test.ts",
-    "test:all": "tsx --test tests/**/**/*.test.ts"
+    "test:all": "tsx --test tests/**/**/*.test.ts",
+    "demo": "tsx cli/demo.ts"
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,7 @@
   },
   "homepage": "https://github.com/callmestiles/afrikart-service#readme",
   "dependencies": {
+    "@inquirer/prompts": "^8.5.2",
     "better-sqlite3": "^12.11.1",
     "crypto": "^1.0.1",
     "dotenv": "^17.4.2",

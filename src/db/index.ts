@@ -8,11 +8,10 @@ export function getDb(): Database.Database {
   if (!db) {
     db = new Database(config.dbPath);
 
-    // Enable WAL mode for better concurrent read performance
-    // WAL = Write-Ahead Logging: readers don't block writers, writers don't block readers
+    // WAL: readers don't block writers, writers don't block readers
     db.pragma("journal_mode = WAL");
 
-    // Enforce foreign key constraints since SQLite disables these by default
+    // SQLite disables FK constraints by default
     db.pragma("foreign_keys = ON");
 
     runMigrations(db);

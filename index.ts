@@ -10,11 +10,7 @@ app.listen(config.port, () => {
   console.log(`   Fincra sandbox: ${config.fincra.baseUrl}`);
   console.log(`   Database: ${config.dbPath}`);
 
-  // Run reconciliation after server is listening
-  // We run it here rather than before listen() so the server
-  // is already accepting requests while reconciliation runs
-  // Reconciliation is best-effort — a failure here must never
-  // prevent the server from starting
+  // Run after listen() so the server accepts requests while reconciliation runs
   runStartupReconciliation().catch((err) => {
     console.error("[reconciliation] Startup reconciliation failed:", err);
   });

@@ -81,7 +81,7 @@ export interface FincraWallet {
   availableBalance: number;
 }
 
-// The standard envelope Fincra wraps all responses in
+// Every Fincra response comes wrapped in this envelope
 export interface FincraEnvelope<T> {
   success: boolean;
   data: T;

@@ -11,11 +11,7 @@ const DEFAULT_OPTIONS: RetryOptions = {
   baseDelayMs: 1000,
 };
 
-// Exponential backoff with jitter
-// Attempt 1: ~1000ms
-// Attempt 2: ~2000ms
-// Attempt 3: ~4000ms
-// Jitter: ±20% random variance so multiple clients don't retry in lockstep
+// Exponential backoff with ±20% jitter so concurrent callers don't retry in lockstep
 function getDelay(attempt: number, baseDelayMs: number): number {
   const exponential = baseDelayMs * Math.pow(2, attempt - 1);
   const jitter = exponential * 0.2 * (Math.random() * 2 - 1);
@@ -47,12 +43,11 @@ export async function withRetry<T>(
             : false;
 
       if (!isRetryable) {
-        // 4xx errors — will always fail, no point retrying
+        // 4xx — bad request, retrying won't help
         throw err;
       }
 
       if (attempt === opts.maxAttempts) {
-        // Exhausted all attempts
         console.warn(
           `[retry] All ${opts.maxAttempts} attempts failed`,
           opts.idempotencyKey

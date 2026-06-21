@@ -145,8 +145,7 @@ async function applyFincraPayoutStatus(
   const fincraStatus = fincraPayout.status;
 
   if (fincraStatus === "processing") {
-    // Still processing — not ready to resolve yet
-    // Update the timestamp so it doesn't get picked up again immediately
+    // Still in flight — leave status unchanged, will check again next restart
     appendOrderEvent({
       orderId,
       event: "reconciliation_still_processing",
@@ -212,8 +211,7 @@ async function applyFincraPayoutStatus(
   );
 }
 
-// Helper to update payout by Fincra reference
-// We need this because reconciliation looks up payouts by Fincra reference
+// Reconciliation knows the Fincra reference, not the payout id
 function updatePayoutStatusByFincraRef(
   fincraReference: string,
   status: "successful" | "failed",
