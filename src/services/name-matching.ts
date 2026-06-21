@@ -77,6 +77,7 @@ function normalize(name: string): string {
   return name
     .toLowerCase()
     .trim()
-    .replace(/[^a-z\s]/g, "") // remove punctuation
+    .replace(/[-]/g, " ") // replace hyphens with space first
+    .replace(/[^a-z\s]/g, "") // then remove remaining punctuation
     .replace(/\s+/g, " "); // collapse multiple spaces
 }
