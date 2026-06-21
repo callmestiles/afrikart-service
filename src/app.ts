@@ -2,6 +2,7 @@ import express from "express";
 import { healthRouter } from "./routes/health";
 import { ordersRouter } from "./routes/orders";
 import { webhooksRouter } from "./routes/webhooks";
+import { payoutsRouter } from "./routes/payouts";
 import { getDb } from "./db";
 
 export function createApp() {
@@ -14,6 +15,7 @@ export function createApp() {
   app.use(healthRouter);
   app.use("/orders", ordersRouter);
   app.use("/webhooks", webhooksRouter);
+  app.use("/payouts", payoutsRouter);
 
   // 404 handler
   app.use((_req, res) => {

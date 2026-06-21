@@ -12,6 +12,10 @@ export function generateOrderReference(orderId: string): string {
   return `pay_${orderId}_${Date.now()}`;
 }
 
+export function generatePayoutReference(orderId: string): string {
+  return `payout_${orderId}_${Date.now()}`;
+}
+
 export function generateIdempotencyKey(payoutReference: string): string {
   // Same payout reference always produces the same idempotency key
   // This means retries use the same key and which results in Fincra deduplicates on their end
