@@ -77,7 +77,7 @@ payoutsRouter.post("/vendor", async (req: Request, res: Response) => {
   // The other will see status !== 'collected' in step 3 and return 409
   const db = getDb();
 
-  const claimed = db.transaction(() => {
+  const claimed : boolean = db.transaction(() => {
     // Re-read inside transaction to get the latest status
     const fresh = db
       .prepare("SELECT status FROM orders WHERE id = ?")
@@ -156,17 +156,6 @@ payoutsRouter.post("/vendor", async (req: Request, res: Response) => {
     verificationResult.accountName,
   );
 
-  appendOrderEvent({
-    orderId: order.id,
-    event: "account_verified",
-    detail: `Account verified: ${verificationResult.accountName} at ${verificationResult.bankName} — ${nameMatch.detail}`,
-    metadata: {
-      confidence: nameMatch.confidence,
-      expectedName: nameMatch.expectedName,
-      verifiedName: nameMatch.verifiedName,
-    },
-  });
-
   if (!nameMatch.matched) {
     // Name mismatch catch, Release order back to collected so operator can review
     updateOrderStatus(order.id, "collected");
@@ -186,6 +175,17 @@ payoutsRouter.post("/vendor", async (req: Request, res: Response) => {
       verifiedName: nameMatch.verifiedName,
     });
   }
+
+  appendOrderEvent({
+    orderId: order.id,
+    event: "account_verified",
+    detail: `Account verified: ${verificationResult.accountName} at ${verificationResult.bankName} — ${nameMatch.detail}`,
+    metadata: {
+      confidence: nameMatch.confidence,
+      expectedName: nameMatch.expectedName,
+      verifiedName: nameMatch.verifiedName,
+    },
+  });
 
   // Handle FX quote if cross-currency
   let quoteReference: string | undefined;
