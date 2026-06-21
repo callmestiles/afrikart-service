@@ -123,7 +123,7 @@ async function simulateSettlement(): Promise<void> {
     { "api-key": SANDBOX_KEY },
   );
 
-  if (status === 200) {
+  if (status === 200 || status === 201) {
     printSuccess(
       "Settlement simulated — webhook will be fired to your service",
     );
@@ -407,11 +407,11 @@ async function simulateChargeback(): Promise<void> {
 
   const { status, body } = await post(
     `${SANDBOX_URL}/simulate/chargeback`,
-    { reference },
+    { paymentReference: reference, reason: "Unauthorized transaction" },
     { "api-key": SANDBOX_KEY },
   );
 
-  if (status === 200) {
+  if (status === 200 || status === 201) {
     printSuccess("Chargeback simulated — webhook fired to your service");
     printInfo(
       "Check the timeline to see the chargeback event and balance impact.",

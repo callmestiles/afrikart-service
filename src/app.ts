@@ -4,6 +4,7 @@ import { ordersRouter } from "./routes/orders";
 import { webhooksRouter } from "./routes/webhooks";
 import { payoutsRouter } from "./routes/payouts";
 import { timelineRouter } from "./routes/timeline";
+import { walletsRouter } from "./routes/wallets";
 import { getDb } from "./db";
 
 export function createApp() {
@@ -18,6 +19,7 @@ export function createApp() {
   app.use("/webhooks", webhooksRouter);
   app.use("/payouts", payoutsRouter);
   app.use("/timeline", timelineRouter);
+  app.use("/wallets", walletsRouter);
 
   // 404 handler
   app.use((_req, res) => {

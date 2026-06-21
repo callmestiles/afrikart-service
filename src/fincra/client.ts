@@ -192,6 +192,36 @@ export class FincraClient {
     return this.request<FincraWallet[]>("GET", "/wallets");
   }
 
+  async getWalletLogs(params?: {
+    currency?: string;
+    type?: "credit" | "debit";
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    results: Array<{
+      id: string;
+      currency: string;
+      type: string;
+      amount: number;
+      balanceAfter: number | null;
+      reference: string;
+      description: string;
+      createdAt: string;
+    }>;
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const query = new URLSearchParams();
+    if (params?.currency) query.set("currency", params.currency);
+    if (params?.type) query.set("type", params.type);
+    if (params?.page) query.set("page", String(params.page));
+    if (params?.limit) query.set("limit", String(params.limit));
+    const qs = query.toString();
+
+    return this.request("GET", `/wallets/logs${qs ? `?${qs}` : ""}`);
+  }
+
   // ─── Events ──────────────────────────────────────────────────────────────
 
   async getEvents(params?: {

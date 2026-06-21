@@ -266,6 +266,74 @@ Quotes expire after 5 minutes, but we treat them as expired 60 seconds early. Th
 
 ---
 
+## Demo Script (Office Presentation)
+
+Run `npm run demo` and follow this sequence:
+
+### 1. Happy Path (5 minutes)
+
+**Action:** Select "Initiate a new order"
+- Order ID: `order_demo_001`
+- Amount: `25000`
+- Customer: `Maya Okafor / maya@example.com`
+
+**Show:** Reference returned, virtual account details, status is `pending`
+
+**Action:** Select "Simulate customer payment"
+- Paste the reference from step above
+
+**Show:** Settlement confirmed, webhook fired
+
+**Action:** Select "View transaction timeline" → by reference
+- Show status is now `collected`
+- Walk through the identifier chain
+- Point out `fincraPaymentId` linking our record to Fincra's system
+
+**Action:** Select "Initiate vendor payout"
+- Paste the reference
+- Select "Kofi Mensah" (happy path account)
+
+**Wait 2 seconds**, then select "View transaction timeline" again
+
+**Show:** Status is `payout_successful`, full timeline from `checkout_draft` to `payout_succeeded`
+
+---
+
+### 2. Failure Path — Async Payout Failure (3 minutes)
+
+**Action:** Create and collect a new order (repeat steps above with `order_demo_002`)
+
+**Action:** Select "Initiate vendor payout"
+- Select "Fatima Invalid — ends in 9 — will fail"
+
+**Show:** Returns 202 immediately — payout accepted for processing
+
+**Wait 2 seconds**, then view timeline
+
+**Show:** Status is `payout_failed`, timeline shows exactly what happened and when, funds restored note in the detail field
+
+**Key point to make:** "The order is back in `payout_failed` state. An operator can see the failure reason, knows funds were restored, and can take recovery action. No log file access needed."
+
+---
+
+### 3. Architectural Highlight — Duplicate Webhook (2 minutes)
+
+**Action:** Select "Simulate duplicate webhook delivery"
+- Pick the most recent `collection.successful` event
+
+**Show:** Service logs — "Duplicate delivery detected — skipping" OR status guard fires
+
+**Key point to make:** "Two independent deduplication layers. First: UNIQUE constraint on `processed_webhooks.event_id` — database-level, survives restarts, handles concurrency. Second: status machine guard — even if a duplicate arrives with a fresh event ID, we check the order's current status before transitioning. Both must fail for a duplicate to cause harm."
+
+---
+
+### Talking Points for Deep Dive
+
+- **Why SQLite?** Zero infrastructure, survives restarts, WAL mode for concurrent reads. Migration path to PostgreSQL is clean — all SQL is in `src/db/*.repo.ts`.
+- **Why return 200 immediately on webhooks?** Prevent Fincra timeout → retry storm. Processing is async via `setImmediate`.
+- **What if the server crashes mid-payout?** Startup reconciliation polls Fincra for stuck orders.  `src/services/reconciliation.ts`.
+- **What changes for mobile money?** New route handler, same idempotency key pattern, same state machine. Core logic untouched.
+
 ## What I Would Improve With More Time
 
 **Periodic reconciliation job** — The startup reconciliation only runs once at boot. A production system needs a background job (every 5-10 minutes) that catches orders that get stuck between restarts. This would use the same `reconcileStuckOrders` logic on a timer.
